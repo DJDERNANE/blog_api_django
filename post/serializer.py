@@ -12,7 +12,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         extra_kwargs = {
                 'title': {'required': True, 'allow_blank': False, 'min_length' : 4 },
                 'content': {'required': True, 'allow_blank': False },
-                'user': {'read_only': True}  # Make user read-only
+                'user': {'read_only': True, 'required': False}  # Make user read-only
             }
 
 
@@ -22,13 +22,14 @@ class CommentSerializer(serializers.ModelSerializer):
     article = ArticleSerializer()
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'published_date', 'user', 'article', 'parent_comment'] 
+        fields = ['id', 'content', 'published_date', 'file', 'user', 'article', 'parent_comment'] 
 
         extra_kwargs = {
                 'content': {'required': True, 'allow_blank': False },
                 'user': {'read_only': True}  ,
                 'article': {'read_only': True}  ,
-                'parent_comment': {'read_only': True}  ,
+                'file': {'required' : False},
+                'parent_comment': {'required' : False, 'read_only': True}  ,
             }
         
 

@@ -13,22 +13,15 @@ from django.db.models import Q
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create(request) :
+def create(request):
     data = request.data
-    username = request.user
-    try:
-        user = User.objects.get(username=username)  # Fetch the full User object
-    except User.DoesNotExist:
-        return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-    
-    serializer = ArticleSerializer(data=data)
-    
-    if serializer.is_valid():
-        serializer.save(user=user)  # Automatically set the user
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    user = request.user
+    article = Article.objects.create(
+        title=data['title'],
+        content=data['content'],
+        user=user
+        )
+    return Response({'details' : 'article created'})
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -96,12 +89,18 @@ def delete(request,pk) :
 def comment(request, Aid):
     try:
         article = Article.objects.get(id=Aid)
-        user = User.objects.get(username=request.user)
-        if request.data['parent']:
-            parent = Comment.objects.get(id=request.data['parent'])
+        user = request.user
+        parent_id = request.data.get('parent')  # Use get() to avoid KeyError
+        if parent_id:
+            parent = Comment.objects.get(id=parent_id)
         else:
             parent = None
-        comment = Comment.objects.create(user=user, article=article, content=request.data['content'], parent_comment=parent)
+        
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+        else : 
+            file = None
+        comment = Comment.objects.create(user=user, article=article, content=request.data['content'], parent_comment=parent, file=file)
         commentSerializer = CommentSerializer(comment)
         return Response(commentSerializer.data, status.HTTP_201_CREATED)
     except Article.DoesNotExist:

@@ -1,3 +1,4 @@
+from uuid import uuid4
 from django.shortcuts import render
 from post.models import Article, Comment
 from post.serializer import ArticleSerializer, CommentSerializer
@@ -8,6 +9,8 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q 
+from eventsourcing.application import Application
+from eventsourcing.domain import Aggregate, event
 # Create your views here.
 
 
@@ -16,12 +19,25 @@ from django.db.models import Q
 def create(request):
     data = request.data
     user = request.user
-    article = Article.objects.create(
-        title=data['title'],
-        content=data['content'],
-        user=user
+    
+    if 'title' not in data or 'content' not in data:
+        return Response({'error': 'Title and content are required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        article = Article(
+            title=data['title'],
+            content=data['content'],
+            user=user
         )
-    return Response({'details' : 'article created'})
+        article.save()
+        article.create_article(
+            title=data['title'],
+            content=data['content'],
+            user=user
+        )
+        return Response({'details': 'Article created'}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
